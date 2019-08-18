@@ -1,0 +1,39 @@
+version: 2
+jobs:
+  deploy:
+    docker:
+      - image: circleci/node:10.16
+    steps:
+      - run:
+          name: Hotfix
+          command: sudo sed -i '/jessie-backports/d' /etc/apt/sources.list && sudo sed -i '/jessie-updates/d' /etc/apt/sources.list
+      - run:
+          name: Update package listing & install python-dev and python-pip
+          command: sudo apt-get update && sudo apt-get install python-dev python-pip
+      - run:
+          name: Install awscli
+          command: sudo pip install awscli
+      - run:
+          name: Install aws-cdk
+          command: npm install -g aws-cdk
+      - checkout
+      - run:
+          name: Install dependencies
+          command: npm install
+      - run:
+          name: Compile TypeScript
+          command: npm run build
+      - run:
+          name: Bootstrap CDK
+          command: cdk bootstrap aws://${AWS_ACCOUNT_ID}/${AWS_REGION}
+      - run:
+          name: Deploy to AWS
+          command: cdk deploy
+workflows:
+  version: 2
+  build_and_deploy:
+    jobs:
+      - deploy:
+          filters:
+            branches:
+              only: master
